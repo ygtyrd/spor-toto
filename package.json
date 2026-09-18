@@ -1,7 +1,7 @@
 
 JSON
 {
-  "name": "spor-toto-bot",
+  "name": "spor-toto-app",
   "version": "1.0.0",
   "scripts": {
     "start": "node server.js"

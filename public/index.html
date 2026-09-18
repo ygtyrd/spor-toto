@@ -1,0 +1,84 @@
+HTML
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spor Toto Ligi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4 font-sans">
+  <div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-center text-green-500 mb-2">Haftanın Maçları</h1>
+    <p class="text-center text-gray-400 mb-6 text-sm">Kalan Hak: <span id="kalan-hak" class="font-bold text-white">25</span>/25</p>
+    <div id="loading" class="text-center text-yellow-400 my-10 animate-pulse">Maçlar bot ile çekiliyor...</div>
+    <div id="mac-listesi" class="space-y-4"></div>
+  </div>
+  <script>
+    let toplamHak = 25;
+    let secimler = {};
+
+    async function maclariGetir() {
+      try {
+        const response = await fetch('/api/bot'); 
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('loading').style.display = 'none';
+          listeyiOlustur(data.maclar);
+        }
+      } catch (e) {
+        document.getElementById('loading').innerText = "Maçlar yüklenemedi.";
+      }
+    }
+
+    function listeyiOlustur(maclar) {
+      const listeDiv = document.getElementById('mac-listesi');
+      maclar.forEach(mac => {
+        const oranlar = [mac.oranlar["1"], mac.oranlar["X"], mac.oranlar["2"]];
+        const minOran = Math.min(...oranlar);
+        const maxOran = Math.max(...oranlar);
+
+        const oranEtiketi = (deger) => {
+          if (deger === minOran) return `<span class="text-green-400 font-bold">${deger} (Favori)</span>`;
+          if (deger === maxOran) return `<span class="text-red-400 font-bold">${deger} (Sürpriz)</span>`;
+          return `<span class="text-gray-400">${deger}</span>`;
+        };
+
+        listeDiv.innerHTML += `
+          <div class="bg-gray-800 p-4 rounded-xl shadow border border-gray-700">
+            <div class="text-center font-semibold mb-3">${mac.id}. ${mac.evSahibi} - ${mac.deplasman}</div>
+            <div class="flex gap-2">
+              <button onclick="secimYap(${mac.id}, '1', this)" class="flex-1 py-2 bg-gray-700 rounded hover:bg-gray-600 transition">1</button>
+              <button onclick="secimYap(${mac.id}, 'X', this)" class="flex-1 py-2 bg-gray-700 rounded hover:bg-gray-600 transition">X</button>
+              <button onclick="secimYap(${mac.id}, '2', this)" class="flex-1 py-2 bg-gray-700 rounded hover:bg-gray-600 transition">2</button>
+            </div>
+            <div class="flex justify-between mt-2 text-xs px-1">
+              <div>${oranEtiketi(mac.oranlar["1"])}</div>
+              <div>${oranEtiketi(mac.oranlar["X"])}</div>
+              <div>${oranEtiketi(mac.oranlar["2"])}</div>
+            </div>
+          </div>`;
+        secimler[mac.id] = [];
+      });
+    }
+
+    window.secimYap = function(macId, tahmin, btn) {
+      const seciliMi = secimler[macId].includes(tahmin);
+      if (seciliMi) {
+        secimler[macId] = secimler[macId].filter(t => t !== tahmin);
+        btn.classList.remove('bg-green-500', 'text-white');
+        btn.classList.add('bg-gray-700');
+        toplamHak++;
+      } else {
+        if (toplamHak <= 0 || secimler[macId].length >= 2) return;
+        secimler[macId].push(tahmin);
+        btn.classList.remove('bg-gray-700');
+        btn.classList.add('bg-green-500', 'text-white');
+        toplamHak--;
+      }
+      document.getElementById('kalan-hak').innerText = toplamHak;
+    }
+    maclariGetir();
+  </script>
+</body>
+</html>
